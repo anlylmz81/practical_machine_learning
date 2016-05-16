@@ -1,0 +1,83 @@
+---
+title: "Practical Machine Learning Course Project"
+author: "Anil Yilmaz Ozkeskin"
+output: html_document
+---
+
+# Assignment Description
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it.
+
+In this project, we will use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants to predict the manner in which they did the exercise.
+
+## Get the data
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+#load libraries
+library(caret)
+library(randomForest)
+
+#load the data
+trainUrl <-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+trainfile <- download.file(trainUrl, destfile="./pml-training.csv", method="curl")
+testfile <- download.file(testUrl, destfile="./pml-testing.csv", method="curl")
+
+#read the data
+train <- read.csv("./pml-training.csv")
+test <- read.csv("./pml-testing.csv")
+dim(train)
+dim(test)
+head(train$classe)
+```
+
+Training dataset contains 19622 obervations and 160 variables. Test dataset contains 20 observations and 160 variables.
+Classe (A, B, C, D, E) is the variable we are going to predict.
+
+## Clean the data
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+# remove columns that contain NA missing values
+cols.without.na = colSums(is.na(test)) == 0
+train = train[, cols.without.na]
+test = test[, cols.without.na]
+
+# drop first 7 columns which is not necessary for prediction.
+train <- train[,8:length(colnames(train))]
+test <- test[,8:length(colnames(test))]
+
+dim(train)
+dim(test)
+```
+
+After cleaning, training dataset contains 19622 obervations and 53 variables and test dataset contains 20 observations and 53 variables.
+
+## Divide training dataset into pure training and validation datasets based on 70%/30%.
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+set.seed(22333) # For reproducibile purpose
+inTrain <- createDataPartition(train$classe, p=0.70, list=F)
+trainData <- train[inTrain, ]
+testData <- train[-inTrain, ]
+dim(trainData)
+dim(testData)
+```
+
+## Build the Model and check Accuracy
+
+I will use Random forecast predictive modeling technique because for non-linear features it generally gives good accuracy and eliminates overfitting.
+
+After fitting the model, we check the accuracy on validation data set.
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+modelFit<- train(trainData$classe~.,method="rf",preProcess="pca",data=trainData)
+confusionMatrix(testData$classe,predict(modelFit,testData))
+```
+
+The estimated accuracy of the model is 97.69% and estimated out-of-sample error is 2.31%.
+
+## Predict for Test dataset
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+# Run against 20 testing set observations.
+print(predict(modelFit, newdata=test))
+```
+
+
+
